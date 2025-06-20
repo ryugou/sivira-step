@@ -25,4 +25,24 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment files (local configs)
-/.env.*
+.env
+functions/.env
+
+# Angular
+.angular/
+dist/
+node_modules/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+/tmp
+/out-tsc

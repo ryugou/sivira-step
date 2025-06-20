@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(firebase --version)",
+      "Bash(npm run build:*)",
+      "Bash(/Users/ryugo/repo/sivira-step/functions)",
+      "Bash(ls:*)",
+      "Bash(FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 npm --prefix functions run build)",
+      "Bash(java:*)",
+      "Bash(touch:*)",
+      "Bash(node:*)",
+      "Bash(cp:*)",
+      "Bash(npm install:*)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}
