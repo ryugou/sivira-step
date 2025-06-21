@@ -118,7 +118,7 @@ sivira-step/
 | ------------ | ---------------------------------------------------------------------- |
 | `accounts`   | クライアントが認可した SNS アカウント（X, Instagram, Threads, TikTok） |
 | `hashtags`   | SNS アカウント単位で登録されたハッシュタグ                             |
-| `tweets`     | SNS アカウント単位で登録されたツイート ID                              |
+| `posts`      | SNS アカウント単位で登録されたツイート ID                              |
 | `logs`       | DM 送信の履歴（再送防止用）                                            |
 
 ---
@@ -150,9 +150,9 @@ FIREBASE_PROJECT_ID=...
 
 ### Step 1: Firestore 構成の定義
 
-- `accounts`, `hashtags`, `tweets`, `logs` のコレクションを定義
+- `accounts`, `hashtags`, `posts`, `logs` のコレクションを定義
 - 各ドキュメントに `uid`, `sns_type`, `account_id` を含める
-- 🔗 参照: `docs/firestore.md`（accounts, hashtags, tweets, logs の構造定義）
+- 🔗 参照: `docs/firestore.md`（accounts, hashtags, posts, logs の構造定義）
 
 ### Step 2: Firebase Functions のベース作成（初期関数）
 
@@ -185,8 +185,8 @@ FIREBASE_PROJECT_ID=...
 - 連携済み SNS のみ表示、X 以外はアラート表示
 - Firestore に保存（`sns_type`, `account_id` 付き）
 - 🔗 参照: `docs/ui.md`（SNS→ アカウント → 投稿/ハッシュタグ登録の UI）
-- 🔗 参照: `docs/api.md`（/api/register/hashtag, /api/register/tweet）
-- 🔗 参照: `docs/firestore.md`（hashtags, tweets 保存構造）
+- 🔗 参照: `docs/api.md`（/api/register/hashtag, /api/register/post
+- 🔗 参照: `docs/firestore.md`（hashtags, posts 保存構造）
 
 ### Step 7: 実行ボタン UI + Firebase 呼び出し連携
 

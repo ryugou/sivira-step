@@ -13,7 +13,12 @@
       "Bash(node:*)",
       "Bash(cp:*)",
       "Bash(npm install:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(firebase projects:list:*)",
+      "Bash(firebase emulators:start:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(npm run lint)",
+      "Bash(firebase functions:list:*)"
     ],
     "deny": []
   }

@@ -33,7 +33,7 @@
       ]
     },
     {
-      "collectionGroup": "tweets",
+      "collectionGroup": "posts",
       "queryScope": "COLLECTION",
       "fields": [
         {

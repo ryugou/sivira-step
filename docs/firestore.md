@@ -2,7 +2,7 @@
 
 ## 📂 Firestore データ構造
 
-本サービスでは、Firebase Firestore を使用して、ユーザーごとのSNS連携・配信設定・ログ情報などを保存・管理する。
+本サービスでは、Firebase Firestore を使用して、ユーザーごとの SNS 連携・配信設定・ログ情報などを保存・管理する。
 
 すべてのデータはログインユーザーの `uid` をルートとして構成される。
 
@@ -15,10 +15,12 @@
 ## 🔑 コレクション一覧（構造）
 
 ### 1. users/{uid}/accounts
-SNSアカウント接続情報（OAuthトークン・識別情報）
+
+SNS アカウント接続情報（OAuth トークン・識別情報）
+
 ```json
 {
-  "sns_type": "x",  // x | instagram | threads | tiktok
+  "sns_type": "x", // x | instagram | threads | tiktok
   "account_id": "1234567890",
   "screen_name": "@example",
   "access_token": "...",
@@ -30,7 +32,9 @@ SNSアカウント接続情報（OAuthトークン・識別情報）
 ---
 
 ### 2. users/{uid}/hashtags
+
 ハッシュタグ配信設定（X のみ対応）
+
 ```json
 {
   "sns_type": "x", // 現時点では x のみ
@@ -43,13 +47,15 @@ SNSアカウント接続情報（OAuthトークン・識別情報）
 
 ---
 
-### 3. users/{uid}/tweets
-リプライ監視対象の投稿ID（X のみ対応）
+### 3. users/{uid}/posts
+
+リプライ監視対象の投稿 ID（X のみ対応）
+
 ```json
 {
   "sns_type": "x",
   "account_id": "1234567890",
-  "tweet_id": "987654321",
+  "post_id": "987654321",
   "created_at": "2025-06-20T13:30:00Z",
   "enabled": true
 }
@@ -58,7 +64,9 @@ SNSアカウント接続情報（OAuthトークン・識別情報）
 ---
 
 ### 4. users/{uid}/dm_logs
-自動DMの配信ログ
+
+自動 DM の配信ログ
+
 ```json
 {
   "sns_type": "x",
@@ -83,7 +91,6 @@ SNSアカウント接続情報（OAuthトークン・識別情報）
 
 ## 🔄 今後の拡張予定
 
-- DMテンプレートのカスタマイズ機能（users/{uid}/dm_templates）
+- DM テンプレートのカスタマイズ機能（users/{uid}/dm_templates）
 - 投稿毎の返信パターン設定（users/{uid}/reply_templates）
 - 管理者ユーザーによる集計ビュー（別途集計用コレクションの追加）
-
