@@ -32,7 +32,8 @@
       "Bash(firebase functions:config:get:*)",
       "Bash(firebase functions:log:*)",
       "Bash(firebase functions:config:set:*)",
-      "Bash(firebase functions:delete:*)"
+      "Bash(firebase functions:delete:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

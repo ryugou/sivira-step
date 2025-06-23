@@ -19,11 +19,6 @@ const createTwitterOAuth = () => {
     process.env.X_CALLBACK_URL ||
     "https://us-central1-sivira-step.cloudfunctions.net/handleSNSCallback/x";
 
-  console.log(
-    `[createTwitterOAuth] API Key length: ${apiKey?.length}, Secret length: ${apiSecret?.length}`
-  );
-  console.log(`[createTwitterOAuth] Callback URL: ${callbackUrl}`);
-  console.log(`[createTwitterOAuth] Using process.env for credentials`);
 
   if (!apiKey || !apiSecret) {
     throw new Error(
@@ -54,7 +49,6 @@ export const connectSNSHttp = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  console.log("[connectSNSHttp] HTTP request received");
 
   try {
     // Authorization headerから手動でトークンを取得
@@ -69,14 +63,9 @@ export const connectSNSHttp = functions.https.onRequest(async (req, res) => {
     }
 
     const idToken = authHeader.substring(7);
-    console.log("[connectSNSHttp] Found Bearer token, length:", idToken.length);
 
     // Firebase Admin SDKでトークンを検証
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    console.log(
-      "[connectSNSHttp] Token verification successful:",
-      decodedToken.uid
-    );
 
     const uid = decodedToken.uid;
     const { sns_type } = req.body || {};
@@ -92,9 +81,6 @@ export const connectSNSHttp = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    console.log(
-      `[connectSNSHttp] User ${uid} attempting to connect ${sns_type}`
-    );
 
     // 各SNSのOAuth URL生成
     let authUrl = "";
@@ -103,11 +89,9 @@ export const connectSNSHttp = functions.https.onRequest(async (req, res) => {
     switch (sns_type) {
       case "x": {
         try {
-          console.log(`[connectSNSHttp] Creating Twitter OAuth instance...`);
           const oauth = createTwitterOAuth();
 
           const result = await new Promise<any>((resolve, reject) => {
-            console.log(`[connectSNSHttp] Requesting OAuth token...`);
             oauth.getOAuthRequestToken(
               async (error, oauthToken, oauthTokenSecret, results) => {
                 if (error) {
@@ -119,10 +103,6 @@ export const connectSNSHttp = functions.https.onRequest(async (req, res) => {
                   reject(error);
                   return;
                 }
-
-                console.log(
-                  `[connectSNSHttp] OAuth token received: ${oauthToken}`
-                );
 
                 try {
                   // 一時的にOAuthデータをFirestoreに保存
@@ -149,10 +129,6 @@ export const connectSNSHttp = functions.https.onRequest(async (req, res) => {
                     });
 
                   authUrl = `https://api.twitter.com/oauth/authenticate?oauth_token=${oauthToken}&state=${stateId}`;
-
-                  console.log(
-                    `[connectSNSHttp] Generated Twitter auth URL: ${authUrl}`
-                  );
 
                   resolve({
                     authUrl: authUrl,
@@ -384,32 +360,11 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
   const urlParts = req.url.split("?")[0].split("/"); // クエリパラメータを除去
   const snsType = urlParts[urlParts.length - 1]; // callback/x から x を取得
 
-  console.log(`[handleSNSCallback] Full URL: ${req.url}`);
-  console.log(`[handleSNSCallback] URL parts: ${JSON.stringify(urlParts)}`);
-  console.log(
-    `[handleSNSCallback] Processing callback for SNS type: ${snsType}`
-  );
-  console.log(`[handleSNSCallback] Query params:`, req.query);
 
   try {
     switch (snsType) {
       case "x": {
         const { oauth_token, oauth_verifier, state } = req.query;
-
-        console.log(`[handleSNSCallback] OAuth parameters received:`);
-        console.log(
-          `[handleSNSCallback] - oauth_token: ${
-            oauth_token ? "present" : "missing"
-          }`
-        );
-        console.log(
-          `[handleSNSCallback] - oauth_verifier: ${
-            oauth_verifier ? "present" : "missing"
-          }`
-        );
-        console.log(
-          `[handleSNSCallback] - state: ${state ? "present" : "missing"}`
-        );
 
         if (!oauth_token || !oauth_verifier) {
           throw new Error(
@@ -428,7 +383,6 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
 
         if (state) {
           // stateパラメータがある場合はそれで検索
-          console.log(`[handleSNSCallback] Searching by state: ${state}`);
           const stateDoc = await db
             .collection("oauth_temp")
             .doc(state as string)
@@ -436,15 +390,9 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
           if (stateDoc.exists) {
             authData = stateDoc.data();
             docToDelete = state as string;
-            console.log(
-              `[handleSNSCallback] Found auth data using state: ${state}`
-            );
           }
         } else {
           // stateパラメータがない場合はoauth_tokenで検索
-          console.log(
-            `[handleSNSCallback] State parameter missing, searching by oauth_token: ${oauth_token}`
-          );
           const tokenDoc = await db
             .collection("oauth_temp")
             .doc(`token_${oauth_token}`)
@@ -457,27 +405,12 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
             if (originalStateId) {
               await db.collection("oauth_temp").doc(originalStateId).delete();
             }
-            console.log(
-              `[handleSNSCallback] Found auth data using oauth_token`
-            );
           }
         }
 
         if (!authData) {
-          console.error(
-            "[handleSNSCallback] OAuth data not found for token:",
-            oauth_token
-          );
-          console.error("[handleSNSCallback] Checked state:", state);
-          console.error(
-            "[handleSNSCallback] Checked token doc: token_" + oauth_token
-          );
           throw new Error("OAuth session not found or expired");
         }
-
-        console.log(
-          `[handleSNSCallback] Found auth data for user: ${authData.uid}`
-        );
 
         const oauth = createTwitterOAuth();
 
@@ -497,10 +430,6 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
                   throw error;
                 }
 
-                console.log(
-                  `[handleSNSCallback] Access token obtained successfully`
-                );
-
                 // ユーザー情報を取得
                 oauth.get(
                   "https://api.twitter.com/1.1/account/verify_credentials.json",
@@ -517,9 +446,6 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
                       }
 
                       const userInfo = JSON.parse(userData);
-                      console.log(
-                        `[handleSNSCallback] Retrieved user info for @${userInfo.screen_name}`
-                      );
 
                       // 既存の同じアカウントをチェック
                       const existingAccountQuery = await db
@@ -532,9 +458,6 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
                         .get();
 
                       if (!existingAccountQuery.empty) {
-                        console.log(
-                          `[handleSNSCallback] Account @${userInfo.screen_name} already exists, skipping save`
-                        );
                         // 既存アカウントがある場合はアクセストークンのみ更新
                         const existingDoc = existingAccountQuery.docs[0];
                         await existingDoc.ref.update({
@@ -544,9 +467,6 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
                             admin.firestore.FieldValue.serverTimestamp(),
                         });
                       } else {
-                        console.log(
-                          `[handleSNSCallback] Creating new account for @${userInfo.screen_name}`
-                        );
                         // 新しいアカウントとして保存
                         await db
                           .collection("users")
@@ -578,12 +498,6 @@ export const handleSNSCallback = functions.https.onRequest(async (req, res) => {
                       const statusMessage = isExistingAccount
                         ? "既に接続済みのアカウントです"
                         : "X認証が完了しました";
-
-                      console.log(
-                        `[handleSNSCallback] Successfully processed Twitter account @${
-                          userInfo.screen_name
-                        } (${isExistingAccount ? "existing" : "new"})`
-                      );
 
                       // ポップアップウィンドウを閉じて親ウィンドウに結果を通知するHTMLを返す
                       res.send(`
@@ -682,14 +596,6 @@ const authenticateUser = async (context: any) => {
     context.rawRequest?.headers?.authorization ||
     context.rawRequest?.headers?.Authorization;
 
-  console.log(
-    "[authenticateUser] Checking manual auth - headers exist:",
-    !!context.rawRequest?.headers
-  );
-  console.log(
-    "[authenticateUser] Authorization header:",
-    authHeader ? "present" : "missing"
-  );
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
     const idToken = authHeader.substring(7);
@@ -711,12 +617,6 @@ const authenticateUser = async (context: any) => {
 
   // callable関数の場合、context.rawRequestがない可能性があるため、
   // クライアントはHTTP関数版を使用することを推奨
-  console.error(
-    "[authenticateUser] No valid authentication found. context.auth:",
-    context.auth,
-    "rawRequest exists:",
-    !!context.rawRequest
-  );
 
   throw new functions.https.HttpsError(
     "unauthenticated",
@@ -737,12 +637,6 @@ export const getConnectedAccountsHttp = functions.https.onRequest(
       return;
     }
 
-    console.log("[getConnectedAccountsHttp] === Authentication Debug ===");
-    console.log("[getConnectedAccountsHttp] Request headers:", req.headers);
-    console.log(
-      "[getConnectedAccountsHttp] Authorization header:",
-      req.headers.authorization
-    );
 
     try {
       // Authorization headerから手動でトークンを取得
@@ -759,24 +653,12 @@ export const getConnectedAccountsHttp = functions.https.onRequest(
       }
 
       const idToken = authHeader.substring(7);
-      console.log(
-        "[getConnectedAccountsHttp] Found Bearer token, length:",
-        idToken.length
-      );
 
       // Firebase Admin SDKでトークンを検証
       const decodedToken = await admin.auth().verifyIdToken(idToken);
-      console.log(
-        "[getConnectedAccountsHttp] Token verification successful:",
-        decodedToken.uid
-      );
 
       const uid = decodedToken.uid;
       const { sns_type } = req.body || {};
-
-      console.log(
-        `[getConnectedAccountsHttp] Fetching accounts for user ${uid}, sns_type: ${sns_type}`
-      );
 
       let query = db
         .collection("users")
@@ -802,10 +684,6 @@ export const getConnectedAccountsHttp = functions.https.onRequest(
             data.connected_at?.toDate?.()?.toISOString() || data.connected_at,
         };
       });
-
-      console.log(
-        `[getConnectedAccountsHttp] Found ${accounts.length} accounts`
-      );
 
       res.json({
         success: true,
@@ -833,25 +711,11 @@ export const getConnectedAccountsHttp = functions.https.onRequest(
 // 連携済みSNSアカウント一覧取得 (互換性のためcallable版も残す)
 export const getConnectedAccounts = functions.https.onCall(
   async (data: any, context: any) => {
-    console.log("[getConnectedAccounts] === Authentication Debug ===");
-    console.log("[getConnectedAccounts] context.auth:", context.auth);
-    console.log(
-      "[getConnectedAccounts] authorization header:",
-      context.rawRequest?.headers?.authorization
-    );
 
     try {
       const authenticatedUser = await authenticateUser(context);
-      console.log(
-        "[getConnectedAccounts] Authentication successful:",
-        authenticatedUser.uid
-      );
       const uid = authenticatedUser.uid;
       const { sns_type } = data;
-
-      console.log(
-        `[getConnectedAccounts] Fetching accounts for user ${uid}, sns_type: ${sns_type}`
-      );
 
       let query = db
         .collection("users")
@@ -877,8 +741,6 @@ export const getConnectedAccounts = functions.https.onCall(
             data.connected_at?.toDate?.()?.toISOString() || data.connected_at,
         };
       });
-
-      console.log(`[getConnectedAccounts] Found ${accounts.length} accounts`);
 
       return {
         success: true,
@@ -939,15 +801,10 @@ export const runHashtagDM = functions.https.onCall(
         );
       }
 
-      console.log(
-        `[runHashtagDM] Processing hashtag: ${hashtagData.hashtag} for account: ${hashtagData.account_id}`
-      );
-
-      console.log(
-        `[runHashtagDM] TODO: Fetch posts with hashtag ${hashtagData.hashtag}`
-      );
-      console.log(`[runHashtagDM] TODO: Send DM to post authors`);
-      console.log(`[runHashtagDM] TODO: Save to dm_logs collection`);
+      // TODO: Implement hashtag processing
+      // 1. Fetch posts with hashtag
+      // 2. Send DM to post authors  
+      // 3. Save to dm_logs collection
 
       return {
         success: true,
@@ -996,15 +853,10 @@ export const runReplyDM = functions.https.onCall(
         );
       }
 
-      console.log(
-        `[runReplyDM] Processing post: ${postData.post_id} for account: ${postData.account_id}`
-      );
-
-      console.log(
-        `[runReplyDM] TODO: Fetch replies to post ${postData.post_id}`
-      );
-      console.log(`[runReplyDM] TODO: Send DM to reply authors`);
-      console.log(`[runReplyDM] TODO: Save to dm_logs collection`);
+      // TODO: Implement reply processing
+      // 1. Fetch replies to post
+      // 2. Send DM to reply authors
+      // 3. Save to dm_logs collection
 
       return {
         success: true,
@@ -1030,7 +882,6 @@ export const debugEnvHttp = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  console.log("[debugEnvHttp] HTTP debug request received");
 
   const envVars = {
     process_env_X_API_KEY: process.env.X_API_KEY ? "SET" : "NOT_SET",
@@ -1071,17 +922,9 @@ export const disconnectSNSHttp = functions.https.onRequest(async (req, res) => {
     }
 
     const idToken = authHeader.substring(7);
-    console.log(
-      "[disconnectSNSHttp] Found Bearer token, length:",
-      idToken.length
-    );
 
     // Firebase Admin SDKでトークンを検証
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    console.log(
-      "[disconnectSNSHttp] Token verification successful:",
-      decodedToken.uid
-    );
 
     const uid = decodedToken.uid;
     const { account_id } = req.body || {};
@@ -1093,10 +936,6 @@ export const disconnectSNSHttp = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    console.log(
-      `[disconnectSNSHttp] Disconnecting account ${account_id} for user ${uid}`
-    );
-
     // アカウントを削除
     await db
       .collection("users")
@@ -1104,10 +943,6 @@ export const disconnectSNSHttp = functions.https.onRequest(async (req, res) => {
       .collection("accounts")
       .doc(account_id)
       .delete();
-
-    console.log(
-      `[disconnectSNSHttp] Successfully disconnected account ${account_id}`
-    );
 
     res.json({
       success: true,
@@ -1142,12 +977,6 @@ export const debugAuthHttp = functions.https.onRequest(async (req, res) => {
     return;
   }
 
-  console.log("[debugAuthHttp] === HTTP Authentication Debug ===");
-  console.log("[debugAuthHttp] Request headers:", req.headers);
-  console.log(
-    "[debugAuthHttp] Authorization header:",
-    req.headers.authorization
-  );
 
   // Authorization headerから手動でトークンを取得
   const authHeader = req.headers.authorization;
@@ -1161,15 +990,10 @@ export const debugAuthHttp = functions.https.onRequest(async (req, res) => {
   }
 
   const idToken = authHeader.substring(7);
-  console.log("[debugAuthHttp] Found Bearer token, length:", idToken.length);
 
   try {
     // Firebase Admin SDKでトークンを検証
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    console.log(
-      "[debugAuthHttp] Token verification successful:",
-      decodedToken.uid
-    );
 
     const envVars = {
       X_API_KEY: process.env.X_API_KEY ? "SET" : "NOT_SET",

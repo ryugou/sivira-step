@@ -166,7 +166,6 @@ export class SNSService {
         // ポップアップからのメッセージを待機
         const messageHandler = (event: MessageEvent) => {
           if (event.data && event.data.type === 'oauth_success') {
-            console.log('OAuth success received:', event.data);
             
             // メッセージリスナーを削除
             window.removeEventListener('message', messageHandler);
@@ -318,7 +317,6 @@ export class SNSService {
       return result;
     } catch (error) {
       console.error('Environment debug error:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       throw error;
     }
   }
