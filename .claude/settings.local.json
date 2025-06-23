@@ -20,7 +20,19 @@
       "Bash(npm run lint)",
       "Bash(firebase functions:list:*)",
       "Bash(npm run env-test:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(npx @angular/cli@19 new:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(npm start)",
+      "Bash(npx ng serve:*)",
+      "Bash(npx ng build:*)",
+      "Bash(firebase hosting:channel:list:*)",
+      "Bash(firebase functions:config:get:*)",
+      "Bash(firebase functions:log:*)",
+      "Bash(firebase functions:config:set:*)",
+      "Bash(firebase functions:delete:*)"
     ],
     "deny": []
   }
