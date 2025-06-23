@@ -213,13 +213,46 @@ export class SNSService {
     if (!user) throw new Error('ユーザーが認証されていません');
 
     try {
-      await deleteDoc(
-        doc(this.firestore, `users/${user.uid}/accounts`, accountId)
-      );
-      await this.loadAccounts(); // リロード
+      // HTTP関数版を使用（Firebase Functions v2のFirestore権限問題回避）
+      const idToken = await user.getIdToken(true);
+
+      const url = `${environment.apiBaseUrl}/disconnectSNSHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ account_id: accountId }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[disconnectSNS] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (result && result.success) {
+        await this.loadAccounts(); // リロード
+      } else {
+        throw new Error('アカウント切断に失敗しました');
+      }
     } catch (error) {
       console.error('SNS切断エラー:', error);
-      throw error;
+
+      // フォールバック: 直接Firestoreから削除を試行
+      try {
+        await deleteDoc(
+          doc(this.firestore, `users/${user.uid}/accounts`, accountId)
+        );
+        await this.loadAccounts(); // リロード
+      } catch (fallbackError) {
+        console.error('フォールバック切断エラー:', fallbackError);
+        throw error; // 元のエラーを投げる
+      }
     }
   }
 
