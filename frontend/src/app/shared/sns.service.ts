@@ -255,6 +255,58 @@ export class SNSService {
     }
   }
 
+  // ハッシュタグDM実行
+  async executeHashtagDM(hashtagId: string): Promise<any> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    const idToken = await user.getIdToken();
+    const response = await fetch(
+      `${environment.apiBaseUrl}/runHashtagDMHttp`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ hashtag_id: hashtagId }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'ハッシュタグDM実行に失敗しました');
+    }
+
+    return response.json();
+  }
+
+  // リプライDM実行
+  async executeReplyDM(postId: string): Promise<any> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    const idToken = await user.getIdToken();
+    const response = await fetch(
+      `${environment.apiBaseUrl}/runReplyDMHttp`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ post_id: postId }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'リプライDM実行に失敗しました');
+    }
+
+    return response.json();
+  }
+
   // テスト用: ダミーアカウントを追加
   async addTestAccount(
     snsType: 'x' | 'instagram' | 'threads' | 'tiktok'

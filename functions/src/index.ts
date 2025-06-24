@@ -1583,3 +1583,149 @@ export const debugAuthHttp = functions.https.onRequest(async (req, res) => {
     });
   }
 });
+
+// runHashtagDMHttp - ハッシュタグベースのDM送信実行
+export const runHashtagDMHttp = functions.https.onRequest(async (req, res) => {
+  // CORS設定
+  res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const idToken = authHeader.split(" ")[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+
+      const { hashtag_id } = req.body;
+      if (!hashtag_id) {
+        res.status(400).json({ error: "hashtag_id is required" });
+        return;
+      }
+
+      // ハッシュタグ情報を取得
+      const hashtagDoc = await db
+        .collection("users")
+        .doc(uid)
+        .collection("hashtags")
+        .doc(hashtag_id)
+        .get();
+
+      if (!hashtagDoc.exists) {
+        res.status(404).json({ error: "Hashtag not found" });
+        return;
+      }
+
+      const hashtagData = hashtagDoc.data()!;
+      
+      if (hashtagData.sns_type !== "x") {
+        res.status(400).json({ error: "Only X (Twitter) is supported" });
+        return;
+      }
+
+      // TODO: 実際のDM送信処理を実装
+      // 現在はテスト用のレスポンスを返す
+      res.json({
+        success: true,
+        message: "DM送信処理を実行しました（テスト）",
+        hashtag: hashtagData.hashtag,
+        processed: 0,
+        sent: 0,
+      });
+
+    } catch (error) {
+      console.error("[runHashtagDMHttp] Error:", error);
+      res.status(500).json({
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
+});
+
+// runReplyDMHttp - リプライベースのDM送信実行
+export const runReplyDMHttp = functions.https.onRequest(async (req, res) => {
+  // CORS設定
+  res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const idToken = authHeader.split(" ")[1];
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+
+      const { post_id } = req.body;
+      if (!post_id) {
+        res.status(400).json({ error: "post_id is required" });
+        return;
+      }
+
+      // 投稿情報を取得
+      const postDoc = await db
+        .collection("users")
+        .doc(uid)
+        .collection("posts")
+        .doc(post_id)
+        .get();
+
+      if (!postDoc.exists) {
+        res.status(404).json({ error: "Post not found" });
+        return;
+      }
+
+      const postData = postDoc.data()!;
+      
+      if (postData.sns_type !== "x") {
+        res.status(400).json({ error: "Only X (Twitter) is supported" });
+        return;
+      }
+
+      // TODO: 実際のDM送信処理を実装
+      // 現在はテスト用のレスポンスを返す
+      res.json({
+        success: true,
+        message: "DM送信処理を実行しました（テスト）",
+        post_id: postData.post_id,
+        processed: 0,
+        sent: 0,
+      });
+
+    } catch (error) {
+      console.error("[runReplyDMHttp] Error:", error);
+      res.status(500).json({
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+      });
+    }
+});

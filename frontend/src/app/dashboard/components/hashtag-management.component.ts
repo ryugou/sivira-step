@@ -74,6 +74,13 @@ interface Hashtag {
               </div>
               <div class="flex space-x-2 ml-4">
                 <button
+                  class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                  (click)="executeHashtagDM(hashtag)"
+                  [disabled]="executing[hashtag.id]"
+                >
+                  {{ executing[hashtag.id] ? '実行中...' : '実行' }}
+                </button>
+                <button
                   class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                   (click)="startEdit(hashtag)"
                 >
@@ -146,6 +153,7 @@ export class HashtagManagementComponent implements OnInit {
   loading = false;
   message = '';
   messageClass = '';
+  executing: { [key: string]: boolean } = {};
 
   constructor(private snsService: SNSService) {}
 
@@ -247,6 +255,29 @@ export class HashtagManagementComponent implements OnInit {
     } catch (error: any) {
       this.showMessage('削除エラー: ' + (error.message || '削除に失敗しました'), 'error');
     }
+  }
+
+  async executeHashtagDM(hashtag: Hashtag) {
+    if (hashtag.sns_type !== 'x') {
+      this.showMessage('現在X（Twitter）のみ実行可能です', 'error');
+      return;
+    }
+
+    if (!confirm(`ハッシュタグ「#${hashtag.hashtag}」の投稿を検索し、DMを送信しますか？`)) {
+      return;
+    }
+
+    this.executing[hashtag.id] = true;
+    this.message = '';
+
+    try {
+      await this.snsService.executeHashtagDM(hashtag.id);
+      this.showMessage('DM送信処理を実行しました', 'success');
+    } catch (error: any) {
+      this.showMessage('実行エラー: ' + (error.message || '実行に失敗しました'), 'error');
+    }
+
+    this.executing[hashtag.id] = false;
   }
 
   goToHashtagRegistration() {

@@ -85,6 +85,13 @@ interface Post {
               </div>
               <div class="flex space-x-2 ml-4">
                 <button
+                  class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+                  (click)="executeReplyDM(post)"
+                  [disabled]="executing[post.id]"
+                >
+                  {{ executing[post.id] ? '実行中...' : '実行' }}
+                </button>
+                <button
                   class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                   (click)="startEdit(post)"
                 >
@@ -170,6 +177,7 @@ export class PostManagementComponent implements OnInit {
   loading = false;
   message = '';
   messageClass = '';
+  executing: { [key: string]: boolean } = {};
 
   constructor(private snsService: SNSService) {}
 
@@ -292,6 +300,29 @@ export class PostManagementComponent implements OnInit {
     } catch (error: any) {
       this.showMessage('削除エラー: ' + (error.message || '削除に失敗しました'), 'error');
     }
+  }
+
+  async executeReplyDM(post: Post) {
+    if (post.sns_type !== 'x') {
+      this.showMessage('現在X（Twitter）のみ実行可能です', 'error');
+      return;
+    }
+
+    if (!confirm(`投稿ID「${post.post_id}」へのリプライを検索し、DMを送信しますか？`)) {
+      return;
+    }
+
+    this.executing[post.id] = true;
+    this.message = '';
+
+    try {
+      await this.snsService.executeReplyDM(post.id);
+      this.showMessage('DM送信処理を実行しました', 'success');
+    } catch (error: any) {
+      this.showMessage('実行エラー: ' + (error.message || '実行に失敗しました'), 'error');
+    }
+
+    this.executing[post.id] = false;
   }
 
   goToPostRegistration() {
