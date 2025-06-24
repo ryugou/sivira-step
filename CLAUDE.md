@@ -184,8 +184,9 @@ FIREBASE_PROJECT_ID=...
 
 - 連携済み SNS のみ表示、X 以外はアラート表示
 - Firestore に保存（`sns_type`, `account_id` 付き）
+- **✅ 実装済み**: 登録済みハッシュタグ/投稿の管理機能（一覧表示・編集・削除）
 - 🔗 参照: `docs/ui.md`（SNS→ アカウント → 投稿/ハッシュタグ登録の UI）
-- 🔗 参照: `docs/api.md`（/api/register/hashtag, /api/register/post
+- 🔗 参照: `docs/api.md`（/api/register/hashtag, /api/register/post, 管理用 API）
 - 🔗 参照: `docs/firestore.md`（hashtags, posts 保存構造）
 
 ### Step 7: 実行ボタン UI + Firebase 呼び出し連携

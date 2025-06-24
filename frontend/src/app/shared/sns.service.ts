@@ -326,4 +326,308 @@ export class SNSService {
     // ポップアップ版ではpostMessageを使用するため、この処理は不要
     // 古いリダイレクト版との互換性のために残しておく
   }
+
+  // ハッシュタグ登録
+  async registerHashtag(data: {
+    sns_type: string;
+    account_id: string;
+    hashtag: string;
+    dm_message: string;
+  }): Promise<void> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/registerHashtagHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[registerHashtag] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'ハッシュタグ登録に失敗しました');
+      }
+    } catch (error) {
+      console.error('ハッシュタグ登録エラー:', error);
+      throw error;
+    }
+  }
+
+  // 投稿登録
+  async registerPost(data: {
+    sns_type: string;
+    account_id: string;
+    post_id: string;
+    post_url: string;
+    dm_message: string;
+  }): Promise<void> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/registerPostHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[registerPost] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || '投稿登録に失敗しました');
+      }
+    } catch (error) {
+      console.error('投稿登録エラー:', error);
+      throw error;
+    }
+  }
+
+  // ハッシュタグ一覧取得
+  async getHashtags(): Promise<any[]> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/getHashtagsHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[getHashtags] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'ハッシュタグ一覧の取得に失敗しました');
+      }
+
+      return result.hashtags || [];
+    } catch (error) {
+      console.error('ハッシュタグ一覧取得エラー:', error);
+      throw error;
+    }
+  }
+
+  // 投稿一覧取得
+  async getPosts(): Promise<any[]> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/getPostsHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[getPosts] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || '投稿一覧の取得に失敗しました');
+      }
+
+      return result.posts || [];
+    } catch (error) {
+      console.error('投稿一覧取得エラー:', error);
+      throw error;
+    }
+  }
+
+  // ハッシュタグ更新
+  async updateHashtag(data: {
+    hashtag_id: string;
+    hashtag: string;
+    dm_message: string;
+  }): Promise<void> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/updateHashtagHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[updateHashtag] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'ハッシュタグの更新に失敗しました');
+      }
+    } catch (error) {
+      console.error('ハッシュタグ更新エラー:', error);
+      throw error;
+    }
+  }
+
+  // 投稿更新
+  async updatePost(data: {
+    post_doc_id: string;
+    post_id: string;
+    post_url: string;
+    dm_message: string;
+  }): Promise<void> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/updatePostHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[updatePost] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || '投稿の更新に失敗しました');
+      }
+    } catch (error) {
+      console.error('投稿更新エラー:', error);
+      throw error;
+    }
+  }
+
+  // ハッシュタグ削除
+  async deleteHashtag(hashtag_id: string): Promise<void> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/deleteHashtagHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ hashtag_id }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[deleteHashtag] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'ハッシュタグの削除に失敗しました');
+      }
+    } catch (error) {
+      console.error('ハッシュタグ削除エラー:', error);
+      throw error;
+    }
+  }
+
+  // 投稿削除
+  async deletePost(post_doc_id: string): Promise<void> {
+    const user = this.authService.currentUser;
+    if (!user) throw new Error('ユーザーが認証されていません');
+
+    try {
+      const idToken = await user.getIdToken(true);
+      const url = `${environment.apiBaseUrl}/deletePostHttp`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ post_doc_id }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[deletePost] Response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || '投稿の削除に失敗しました');
+      }
+    } catch (error) {
+      console.error('投稿削除エラー:', error);
+      throw error;
+    }
+  }
 }

@@ -4,11 +4,15 @@ import { Router } from '@angular/router';
 import { AuthService } from '../shared/auth.service';
 import { SNSService } from '../shared/sns.service';
 import { SNSAccountsComponent } from './components/sns-accounts.component';
+import { HashtagRegistrationComponent } from './components/hashtag-registration.component';
+import { PostRegistrationComponent } from './components/post-registration.component';
+import { HashtagManagementComponent } from './components/hashtag-management.component';
+import { PostManagementComponent } from './components/post-management.component';
 
 @Component({
   selector: 'app-dashboard-simple',
   standalone: true,
-  imports: [CommonModule, SNSAccountsComponent],
+  imports: [CommonModule, SNSAccountsComponent, HashtagRegistrationComponent, PostRegistrationComponent, HashtagManagementComponent, PostManagementComponent],
   template: `
     <div class="min-h-screen bg-gray-50">
       <!-- Top Navigation -->
@@ -59,23 +63,23 @@ import { SNSAccountsComponent } from './components/sns-accounts.component';
               <li>
                 <button
                   class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 flex items-center space-x-3"
-                  [class.bg-blue-50]="currentView === 'hashtags'"
-                  [class.text-blue-600]="currentView === 'hashtags'"
-                  (click)="setCurrentView('hashtags')"
+                  [class.bg-blue-50]="currentView === 'hashtag-management'"
+                  [class.text-blue-600]="currentView === 'hashtag-management'"
+                  (click)="setCurrentView('hashtag-management')"
                 >
-                  <span>#</span>
-                  <span>ハッシュタグ登録</span>
+                  <span>📋</span>
+                  <span>ハッシュタグ管理</span>
                 </button>
               </li>
               <li>
                 <button
                   class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 flex items-center space-x-3"
-                  [class.bg-blue-50]="currentView === 'posts'"
-                  [class.text-blue-600]="currentView === 'posts'"
-                  (click)="setCurrentView('posts')"
+                  [class.bg-blue-50]="currentView === 'post-management'"
+                  [class.text-blue-600]="currentView === 'post-management'"
+                  (click)="setCurrentView('post-management')"
                 >
-                  <span>💬</span>
-                  <span>投稿登録</span>
+                  <span>📝</span>
+                  <span>投稿管理</span>
                 </button>
               </li>
             </ul>
@@ -113,23 +117,23 @@ import { SNSAccountsComponent } from './components/sns-accounts.component';
                 <li>
                   <button
                     class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 flex items-center space-x-3"
-                    [class.bg-blue-50]="currentView === 'hashtags'"
-                    [class.text-blue-600]="currentView === 'hashtags'"
-                    (click)="setCurrentView('hashtags'); sidebarVisible = false"
+                    [class.bg-blue-50]="currentView === 'hashtag-management'"
+                    [class.text-blue-600]="currentView === 'hashtag-management'"
+                    (click)="setCurrentView('hashtag-management'); sidebarVisible = false"
                   >
-                    <span>#</span>
-                    <span>ハッシュタグ登録</span>
+                    <span>📋</span>
+                    <span>ハッシュタグ管理</span>
                   </button>
                 </li>
                 <li>
                   <button
                     class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 flex items-center space-x-3"
-                    [class.bg-blue-50]="currentView === 'posts'"
-                    [class.text-blue-600]="currentView === 'posts'"
-                    (click)="setCurrentView('posts'); sidebarVisible = false"
+                    [class.bg-blue-50]="currentView === 'post-management'"
+                    [class.text-blue-600]="currentView === 'post-management'"
+                    (click)="setCurrentView('post-management'); sidebarVisible = false"
                   >
-                    <span>💬</span>
-                    <span>投稿登録</span>
+                    <span>📝</span>
+                    <span>投稿管理</span>
                   </button>
                 </li>
               </ul>
@@ -144,59 +148,25 @@ import { SNSAccountsComponent } from './components/sns-accounts.component';
               *ngIf="currentView === 'accounts'"
             ></app-sns-accounts>
 
-            <div
+            <app-hashtag-registration
               *ngIf="currentView === 'hashtags'"
-              class="bg-white rounded-lg shadow p-6"
-            >
-              <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <span class="mr-2">#</span>
-                ハッシュタグ登録
-              </h2>
-              <p class="text-gray-600 mb-6">
-                キャンペーン用ハッシュタグを登録し、該当投稿者へ自動DM送信を設定できます。
-              </p>
+              (registrationComplete)="onHashtagRegistrationComplete()"
+            ></app-hashtag-registration>
 
-              <div
-                class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6"
-              >
-                <div class="flex">
-                  <span class="text-yellow-600 mr-2">⚠️</span>
-                  <div>
-                    <p class="font-medium text-yellow-800">SNS連携が必要です</p>
-                    <p class="text-sm text-yellow-700">
-                      ハッシュタグ登録を行うには、まずSNSアカウント連携を完了してください。
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
+            <app-post-registration
               *ngIf="currentView === 'posts'"
-              class="bg-white rounded-lg shadow p-6"
-            >
-              <h2 class="text-xl font-semibold mb-4 flex items-center">
-                <span class="mr-2">💬</span>
-                投稿登録
-              </h2>
-              <p class="text-gray-600 mb-6">
-                特定の投稿へのリプライ投稿者に対して、自動DM送信を設定できます。
-              </p>
+              (registrationComplete)="onPostRegistrationComplete()"
+            ></app-post-registration>
 
-              <div
-                class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6"
-              >
-                <div class="flex">
-                  <span class="text-yellow-600 mr-2">⚠️</span>
-                  <div>
-                    <p class="font-medium text-yellow-800">SNS連携が必要です</p>
-                    <p class="text-sm text-yellow-700">
-                      投稿登録を行うには、まずSNSアカウント連携を完了してください。
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <app-hashtag-management
+              *ngIf="currentView === 'hashtag-management'"
+              (navigateToView)="onNavigateToView($event)"
+            ></app-hashtag-management>
+
+            <app-post-management
+              *ngIf="currentView === 'post-management'"
+              (navigateToView)="onNavigateToView($event)"
+            ></app-post-management>
           </div>
         </main>
       </div>
@@ -204,7 +174,7 @@ import { SNSAccountsComponent } from './components/sns-accounts.component';
   `,
 })
 export class DashboardSimpleComponent implements OnInit {
-  currentView: 'accounts' | 'hashtags' | 'posts' = 'accounts';
+  currentView: 'accounts' | 'hashtags' | 'posts' | 'hashtag-management' | 'post-management' = 'accounts';
   sidebarVisible = false;
   currentUser: any = null;
 
@@ -222,13 +192,25 @@ export class DashboardSimpleComponent implements OnInit {
     });
   }
 
-  setCurrentView(view: 'accounts' | 'hashtags' | 'posts') {
+  setCurrentView(view: 'accounts' | 'hashtags' | 'posts' | 'hashtag-management' | 'post-management') {
     this.currentView = view;
   }
 
   async logout() {
     await this.authService.logout();
     this.router.navigate(['/auth']);
+  }
+
+  onHashtagRegistrationComplete() {
+    this.setCurrentView('hashtag-management');
+  }
+
+  onPostRegistrationComplete() {
+    this.setCurrentView('post-management');
+  }
+
+  onNavigateToView(view: string) {
+    this.setCurrentView(view as any);
   }
 
   async connectSNS(snsType: 'x' | 'instagram' | 'threads' | 'tiktok') {

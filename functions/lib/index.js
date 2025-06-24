@@ -1,12 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.debugAuthHttp = exports.disconnectSNSHttp = exports.debugEnvHttp = exports.runReplyDM = exports.runHashtagDM = exports.getConnectedAccounts = exports.getConnectedAccountsHttp = exports.handleSNSCallback = exports.connectSNS = exports.connectSNSHttp = void 0;
+exports.debugAuthHttp = exports.deletePostHttp = exports.deleteHashtagHttp = exports.updatePostHttp = exports.updateHashtagHttp = exports.getPostsHttp = exports.getHashtagsHttp = exports.registerPostHttp = exports.registerHashtagHttp = exports.disconnectSNSHttp = exports.debugEnvHttp = exports.runReplyDM = exports.runHashtagDM = exports.getConnectedAccounts = exports.getConnectedAccountsHttp = exports.handleSNSCallback = exports.connectSNS = exports.connectSNSHttp = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const oauth_1 = require("oauth");
 const crypto = require("crypto");
 admin.initializeApp();
 const db = admin.firestore();
+// CORS設定（コメントアウト - 明示的なCORS設定を使用）
+// const corsHandler = cors({
+//   origin: true,
+//   credentials: true,
+//   methods: ['GET', 'POST', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// });
 // OAuth用の一時データ保存をFirestoreで管理（Firebase Functions v2対応）
 // const pendingAuths = new Map<string, any>(); // メモリマップは削除
 // Twitter OAuth設定 (Firebase Functions v2 compatible)
@@ -727,14 +734,503 @@ exports.disconnectSNSHttp = functions.https.onRequest(async (req, res) => {
         }
     }
 });
-// デバッグ用：HTTP関数での認証テスト - Firebase Functions v2 compatible
-exports.debugAuthHttp = functions.https.onRequest(async (req, res) => {
-    // CORS設定
-    res.set("Access-Control-Allow-Origin", "*");
+// ハッシュタグ登録 (HTTP関数版)
+exports.registerHashtagHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
     res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
     if (req.method === "OPTIONS") {
-        res.status(200).send();
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[registerHashtagHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        const { sns_type, account_id, hashtag, dm_message } = req.body || {};
+        if (!sns_type || !account_id || !hashtag || !dm_message) {
+            res.status(400).json({
+                error: "Missing required fields",
+                required: ["sns_type", "account_id", "hashtag", "dm_message"],
+            });
+            return;
+        }
+        // ハッシュタグデータを作成
+        const hashtagData = {
+            uid,
+            sns_type,
+            account_id,
+            hashtag: hashtag.replace(/^#/, ''), // # を除去
+            dm_message,
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
+            is_active: true,
+        };
+        // Firestoreに保存
+        const docRef = await db.collection("users").doc(uid).collection("hashtags").add(hashtagData);
+        res.json({
+            success: true,
+            message: "ハッシュタグが正常に登録されました",
+            hashtag_id: docRef.id,
+        });
+    }
+    catch (error) {
+        console.error("[registerHashtagHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// 投稿登録 (HTTP関数版)
+exports.registerPostHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[registerPostHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        const { sns_type, account_id, post_id, post_url, dm_message } = req.body || {};
+        if (!sns_type || !account_id || !post_id || !dm_message) {
+            res.status(400).json({
+                error: "Missing required fields",
+                required: ["sns_type", "account_id", "post_id", "dm_message"],
+            });
+            return;
+        }
+        // 投稿データを作成
+        const postData = {
+            uid,
+            sns_type,
+            account_id,
+            post_id,
+            post_url: post_url || '',
+            dm_message,
+            created_at: admin.firestore.FieldValue.serverTimestamp(),
+            is_active: true,
+        };
+        // Firestoreに保存
+        const docRef = await db.collection("users").doc(uid).collection("posts").add(postData);
+        res.json({
+            success: true,
+            message: "投稿が正常に登録されました",
+            post_doc_id: docRef.id,
+        });
+    }
+    catch (error) {
+        console.error("[registerPostHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// ハッシュタグ一覧取得 (HTTP関数版)
+exports.getHashtagsHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[getHashtagsHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        // ユーザーのハッシュタグ一覧を取得
+        const hashtagsRef = db.collection("users").doc(uid).collection("hashtags");
+        const snapshot = await hashtagsRef.where("is_active", "==", true).orderBy("created_at", "desc").get();
+        const hashtags = snapshot.docs.map(doc => {
+            var _a, _b, _c;
+            return (Object.assign(Object.assign({ id: doc.id }, doc.data()), { created_at: ((_c = (_b = (_a = doc.data().created_at) === null || _a === void 0 ? void 0 : _a.toDate) === null || _b === void 0 ? void 0 : _b.call(_a)) === null || _c === void 0 ? void 0 : _c.toISOString()) || doc.data().created_at }));
+        });
+        res.json({
+            success: true,
+            hashtags: hashtags,
+            total: hashtags.length,
+        });
+    }
+    catch (error) {
+        console.error("[getHashtagsHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// 投稿一覧取得 (HTTP関数版)
+exports.getPostsHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[getPostsHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        // ユーザーの投稿一覧を取得
+        const postsRef = db.collection("users").doc(uid).collection("posts");
+        const snapshot = await postsRef.where("is_active", "==", true).orderBy("created_at", "desc").get();
+        const posts = snapshot.docs.map(doc => {
+            var _a, _b, _c;
+            return (Object.assign(Object.assign({ id: doc.id }, doc.data()), { created_at: ((_c = (_b = (_a = doc.data().created_at) === null || _a === void 0 ? void 0 : _a.toDate) === null || _b === void 0 ? void 0 : _b.call(_a)) === null || _c === void 0 ? void 0 : _c.toISOString()) || doc.data().created_at }));
+        });
+        res.json({
+            success: true,
+            posts: posts,
+            total: posts.length,
+        });
+    }
+    catch (error) {
+        console.error("[getPostsHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// ハッシュタグ更新 (HTTP関数版)
+exports.updateHashtagHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[updateHashtagHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        const { hashtag_id, hashtag, dm_message } = req.body || {};
+        if (!hashtag_id || !hashtag || !dm_message) {
+            res.status(400).json({
+                error: "Missing required fields",
+                required: ["hashtag_id", "hashtag", "dm_message"],
+            });
+            return;
+        }
+        // ハッシュタグを更新
+        await db.collection("users").doc(uid).collection("hashtags").doc(hashtag_id).update({
+            hashtag: hashtag.replace(/^#/, ''), // # を除去
+            dm_message,
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        res.json({
+            success: true,
+            message: "ハッシュタグが正常に更新されました",
+        });
+    }
+    catch (error) {
+        console.error("[updateHashtagHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// 投稿更新 (HTTP関数版)
+exports.updatePostHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[updatePostHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        const { post_doc_id, post_id, post_url, dm_message } = req.body || {};
+        if (!post_doc_id || !post_id || !dm_message) {
+            res.status(400).json({
+                error: "Missing required fields",
+                required: ["post_doc_id", "post_id", "dm_message"],
+            });
+            return;
+        }
+        // 投稿を更新
+        await db.collection("users").doc(uid).collection("posts").doc(post_doc_id).update({
+            post_id,
+            post_url: post_url || '',
+            dm_message,
+            updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        res.json({
+            success: true,
+            message: "投稿が正常に更新されました",
+        });
+    }
+    catch (error) {
+        console.error("[updatePostHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// ハッシュタグ削除 (HTTP関数版)
+exports.deleteHashtagHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[deleteHashtagHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        const { hashtag_id } = req.body || {};
+        if (!hashtag_id) {
+            res.status(400).json({
+                error: "Missing required field: hashtag_id",
+            });
+            return;
+        }
+        // ハッシュタグを論理削除
+        await db.collection("users").doc(uid).collection("hashtags").doc(hashtag_id).update({
+            is_active: false,
+            deleted_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        res.json({
+            success: true,
+            message: "ハッシュタグが正常に削除されました",
+        });
+    }
+    catch (error) {
+        console.error("[deleteHashtagHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// 投稿削除 (HTTP関数版)
+exports.deletePostHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
+        return;
+    }
+    try {
+        // Authorization headerから手動でトークンを取得
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.error("[deletePostHttp] No valid authorization header found");
+            res.status(401).json({
+                error: "No valid authorization header found",
+                received_header: authHeader,
+            });
+            return;
+        }
+        const idToken = authHeader.substring(7);
+        // Firebase Admin SDKでトークンを検証
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        const uid = decodedToken.uid;
+        const { post_doc_id } = req.body || {};
+        if (!post_doc_id) {
+            res.status(400).json({
+                error: "Missing required field: post_doc_id",
+            });
+            return;
+        }
+        // 投稿を論理削除
+        await db.collection("users").doc(uid).collection("posts").doc(post_doc_id).update({
+            is_active: false,
+            deleted_at: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        res.json({
+            success: true,
+            message: "投稿が正常に削除されました",
+        });
+    }
+    catch (error) {
+        console.error("[deletePostHttp] Error:", error);
+        if (error instanceof Error && error.message.includes("auth/")) {
+            res.status(401).json({
+                error: "Authentication failed",
+                details: error.message,
+            });
+        }
+        else {
+            res.status(500).json({
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : String(error),
+            });
+        }
+    }
+});
+// デバッグ用：HTTP関数での認証テスト - Firebase Functions v2 compatible
+exports.debugAuthHttp = functions.https.onRequest(async (req, res) => {
+    // CORS設定 - 明示的に設定
+    res.set("Access-Control-Allow-Origin", "https://sivira-step.web.app");
+    res.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
+    if (req.method === "OPTIONS") {
+        res.status(200).end();
         return;
     }
     // Authorization headerから手動でトークンを取得

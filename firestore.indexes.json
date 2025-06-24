@@ -19,11 +19,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "sns_type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "enabled",
+          "fieldPath": "is_active",
           "order": "ASCENDING"
         },
         {
@@ -37,11 +33,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "sns_type",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "enabled",
+          "fieldPath": "is_active",
           "order": "ASCENDING"
         },
         {

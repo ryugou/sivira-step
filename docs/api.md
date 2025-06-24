@@ -77,7 +77,8 @@ Response: Array<{
 Body: {
   sns_type: 'x',  // 現時点では 'x' のみ対応
   account_id: string,
-  hashtag: string
+  hashtag: string,
+  dm_message: string  // DM送信時のメッセージ
 }
 ```
 
@@ -90,9 +91,87 @@ Body: {
 Body: {
   sns_type: 'x',
   account_id: string,
-  post_id: string
+  post_id: string,
+  post_url: string,  // 投稿のURL（オプション）
+  dm_message: string  // DM送信時のメッセージ
 }
 ```
+
+---
+
+### ✅ ハッシュタグ・投稿管理
+
+#### `GET /api/hashtags`
+- ログイン中ユーザーの登録済みハッシュタグ一覧を取得。
+
+```ts
+Response: Array<{
+  id: string,
+  uid: string,
+  sns_type: string,
+  account_id: string,
+  hashtag: string,
+  dm_message: string,
+  created_at: string,
+  updated_at?: string,
+  is_active: boolean
+}>
+```
+
+---
+
+#### `GET /api/posts`
+- ログイン中ユーザーの登録済み投稿一覧を取得。
+
+```ts
+Response: Array<{
+  id: string,
+  uid: string,
+  sns_type: string,
+  account_id: string,
+  post_id: string,
+  post_url: string,
+  dm_message: string,
+  created_at: string,
+  updated_at?: string,
+  is_active: boolean
+}>
+```
+
+---
+
+#### `PUT /api/hashtag/:hashtag_id`
+- ハッシュタグ情報を更新。
+
+```ts
+Body: {
+  hashtag: string,
+  dm_message: string
+}
+```
+
+---
+
+#### `PUT /api/post/:post_doc_id`
+- 投稿情報を更新。
+
+```ts
+Body: {
+  post_id: string,
+  post_url: string,
+  dm_message: string
+}
+```
+
+---
+
+#### `DELETE /api/hashtag/:hashtag_id`
+- ハッシュタグを論理削除（`is_active: false`に更新）。
+
+---
+
+#### `DELETE /api/post/:post_doc_id`
+- 投稿を論理削除（`is_active: false`に更新）。
 
 ---
 
@@ -137,7 +216,7 @@ Body: {
 }
 ```
 
-### `hashtags/{hashtag_id}`
+### `users/{uid}/hashtags/{hashtag_id}`
 - 監視対象のハッシュタグと紐づくSNSアカウント
 ```ts
 {
@@ -145,11 +224,14 @@ Body: {
   sns_type: 'x',
   account_id: string,
   hashtag: string,
-  created_at: Timestamp
+  dm_message: string,
+  created_at: Timestamp,
+  updated_at?: Timestamp,
+  is_active: boolean
 }
 ```
 
-### `posts/{post_id}`
+### `users/{uid}/posts/{post_doc_id}`
 - 監視対象の投稿（例：Xの投稿ID）と紐づくSNSアカウント
 ```ts
 {
@@ -157,7 +239,11 @@ Body: {
   sns_type: 'x',
   account_id: string,
   post_id: string,
-  created_at: Timestamp
+  post_url: string,
+  dm_message: string,
+  created_at: Timestamp,
+  updated_at?: Timestamp,
+  is_active: boolean
 }
 ```
 
